@@ -1,4 +1,12 @@
-# nextcloud CLI Client Skill
+---
+name: nextcloud
+description: Work with Nextcloud through WebDAV, CalDAV, and CardDAV protocols
+version: 1.0.0
+author: 
+permissions: Requires network access to connect to Nextcloud server and file system access for local file operations
+---
+
+# Nextcloud CLI Client Skill
 
 ## Overview
 This skill provides instructions for working with the Nextcloud CLI Client (`nextcloud/skill.py`) - a Python script for interacting with Nextcloud servers via WebDAV, CalDAV, and CardDAV APIs.

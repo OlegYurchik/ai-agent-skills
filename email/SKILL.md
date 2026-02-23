@@ -1,3 +1,11 @@
+---
+name: email
+description: Work with email through IMAP and SMTP protocols
+version: 1.0.0
+author: 
+permissions: Requires network access to connect to IMAP/SMTP servers for sending and receiving emails
+---
+
 # Email CLI Client Skill
 
 ## Overview

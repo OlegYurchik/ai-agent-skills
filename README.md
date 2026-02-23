@@ -73,6 +73,10 @@ ai-agent-skills/
 
 - Python 3.11+
 
+## To Do
+
+* Add support Nextcloud Notes: full CRUD and search by text
+
 ## License
 
 MIT

@@ -72,6 +72,7 @@ class CalendarEntry:
 @dataclass
 class EventEntry:
     href: str
+    calendar_name: str
 
 
 @dataclass
@@ -264,7 +265,7 @@ class NextcloudCalendarClient(NextcloudClient):
 
     def list_events(
             self,
-            calendar_path: str,
+            calendar_name: str,
             start_date: str,
             end_date: str,
     ) -> list[EventEntry]:
@@ -283,7 +284,7 @@ class NextcloudCalendarClient(NextcloudClient):
             '</cal:calendar-query>'
         )
 
-        full_path = calendar_path.rstrip("/") + "/"
+        full_path = f"/remote.php/dav/calendars/{self.user}/{calendar_name}/"
         response = self._request(
             "REPORT",
             full_path,
@@ -296,7 +297,7 @@ class NextcloudCalendarClient(NextcloudClient):
 
         entries: list[EventEntry] = []
         for href in self._parse_xml_data(response.read()):
-            entries.append(EventEntry(href=href))
+            entries.append(EventEntry(href=href, calendar_name=calendar_name))
 
         return entries
 
@@ -336,19 +337,19 @@ class NextcloudCalendarClient(NextcloudClient):
         self.raise_for_status(response)
         return response.status == 204
 
-    def get_event(self, calendar_path: str, event_href: str) -> str | None:
-        full_path = calendar_path.rstrip("/") + "/" + event_href.lstrip("/")
+    def get_event(self, calendar_name: str, event_href: str) -> str | None:
+        full_path = f"/remote.php/dav/calendars/{self.user}/{calendar_name}/{event_href.lstrip('/')}"
         response = self._request("GET", full_path)
         if response.status == 200:
             return response.read().decode()
         return None
 
-    def create_event(self, calendar_path: str, icalendar_content: str) -> str | None:
+    def create_event(self, calendar_name: str, icalendar_content: str) -> str | None:
         uid_match = re.search(r"UID:(.+)", icalendar_content)
         uid = uid_match.group(1).strip() if uid_match else uuid.uuid4().hex
         filename = re.sub(r"[^a-zA-Z0-9._-]", "_", uid) + ".ics"
 
-        full_path = calendar_path.rstrip("/") + "/" + filename
+        full_path = f"/remote.php/dav/calendars/{self.user}/{calendar_name}/{filename}"
         response = self._request(
             "PUT",
             full_path,
@@ -359,20 +360,20 @@ class NextcloudCalendarClient(NextcloudClient):
         return filename
 
     def update_event(
-        self, calendar_path: str, event_href: str, icalendar_content: str
+        self, calendar_name: str, event_href: str, icalendar_content: str
     ) -> bool:
         """
         Update existing event.
 
         Args:
-            calendar_path: Path to calendar
+            calendar_name: Name of calendar
             event_href: Event href
             icalendar_content: Updated iCalendar content
 
         Returns:
             True on success
         """
-        full_path = calendar_path.rstrip("/") + "/" + event_href.lstrip("/")
+        full_path = f"/remote.php/dav/calendars/{self.user}/{calendar_name}/{event_href.lstrip('/')}"
         response = self._request(
             "PUT",
             full_path,
@@ -383,34 +384,28 @@ class NextcloudCalendarClient(NextcloudClient):
         self.raise_for_status(response)
         return response.status in (200, 204, 201)
 
-    def delete_event(self, calendar_path: str, event_href: str) -> bool:
-        full_path = calendar_path.rstrip("/") + "/" + event_href.lstrip("/")
+    def delete_event(self, calendar_name: str, event_href: str) -> bool:
+        full_path = f"/remote.php/dav/calendars/{self.user}/{calendar_name}/{event_href.lstrip('/')}"
         response = self._request("DELETE", full_path)
         return response.status in (200, 204)
 
     def _format_datetime(self, dt_str: str) -> str:
         dt_str = dt_str.strip()
         if "T" in dt_str:
-            try:
-                return datetime.datetime.fromisoformat(
-                    dt_str.replace("Z", "+00:00")
-                ).strftime("%Y%m%dT%H%M%SZ")
-            except ValueError:
-                pass
-        try:
-            return datetime.datetime.fromisoformat(dt_str).strftime("%Y%m%d")
-        except ValueError:
-            pass
-        return dt_str.replace("-", "").replace(":", "").replace("T", "")
+            dt_str = dt_str.replace("Z", "+00:00")
+        dt = datetime.datetime.fromisoformat(dt_str)
+        if dt.tzinfo is None:
+            raise ValueError("Timezone is required for datetime values")
+        return dt.strftime("%Y%m%dT%H%M%SZ")
 
     def create_event_from_params(
-        self,
-        calendar_path: str,
-        summary: str,
-        start: str,
-        end: str,
-        description: str = "",
-        location: str = "",
+            self,
+            calendar_name: str,
+            summary: str,
+            start: str,
+            end: str,
+            description: str = "",
+            location: str = "",
     ) -> str | None:
         start_fmt = self._format_datetime(start)
         end_fmt = self._format_datetime(end)
@@ -432,11 +427,11 @@ class NextcloudCalendarClient(NextcloudClient):
         if location:
             ical.append(f"LOCATION:{location}")
         ical.extend(["END:VEVENT", "END:VCALENDAR"])
-        return self.create_event(calendar_path, "\r\n".join(ical))
+        return self.create_event(calendar_name, "\r\n".join(ical))
 
     def update_event_from_params(
             self,
-            calendar_path: str,
+            calendar_name: str,
             event_href: str,
             summary: str,
             start: str,
@@ -444,7 +439,7 @@ class NextcloudCalendarClient(NextcloudClient):
             description: str = "",
             location: str = "",
     ) -> bool:
-        existing_content = self.get_event(calendar_path, event_href)
+        existing_content = self.get_event(calendar_name, event_href)
         uid = ""
         if existing_content:
             uid_match = re.search(r"UID:(.+)", existing_content)
@@ -473,7 +468,7 @@ class NextcloudCalendarClient(NextcloudClient):
         if location:
             ical.append(f"LOCATION:{location}")
         ical.extend(["END:VEVENT", "END:VCALENDAR"])
-        return self.update_event(calendar_path, event_href, "\r\n".join(ical))
+        return self.update_event(calendar_name, event_href, "\r\n".join(ical))
 
 
 class NextcloudContactsClient(NextcloudClient):
@@ -665,20 +660,6 @@ class NextcloudContactsClient(NextcloudClient):
         vcard.append("END:VCARD")
 
         return self.update_card(card_href, "\r\n".join(vcard))
-
-
-def get_calendar_path(
-    client: NextcloudCalendarClient, calendar_name_or_path: str
-) -> str:
-    if calendar_name_or_path.startswith("/"):
-        return calendar_name_or_path
-
-    calendars = client.list_calendars()
-    for cal in calendars:
-        if cal.name == calendar_name_or_path:
-            return cal.href
-
-    raise NextcloudError(f"Calendar '{calendar_name_or_path}' not found")
 
 
 def print_file_list(files: list[FileEntry]) -> None:
@@ -952,15 +933,11 @@ def _execute_cal_list(client: NextcloudCalendarClient) -> None:
 
 def _execute_cal_events(
     client: NextcloudCalendarClient,
-    calendar_name_or_path: str,
+    calendar_name: str,
     start_date: str,
     end_date: str,
 ) -> None:
-    print_event_list(
-        client.list_events(
-            get_calendar_path(client, calendar_name_or_path), start_date, end_date
-        )
-    )
+    print_event_list(client.list_events(calendar_name, start_date, end_date))
 
 
 def _execute_cal_create(client: NextcloudCalendarClient, name: str) -> None:
@@ -1043,13 +1020,9 @@ def _execute_card_delete(
 
 
 def _execute_cal_event_get(
-    client: NextcloudCalendarClient, calendar_name_or_path: str, event_href: str
+    client: NextcloudCalendarClient, calendar_name: str, event_href: str
 ) -> None:
-    if not (
-        event_content := client.get_event(
-            get_calendar_path(client, calendar_name_or_path), event_href
-        )
-    ):
+    if not (event_content := client.get_event(calendar_name, event_href)):
         print("Event not found")
         sys.exit(1)
     print(event_content)
@@ -1057,12 +1030,12 @@ def _execute_cal_event_get(
 
 def _execute_cal_event_create(
     client: NextcloudCalendarClient,
-    calendar_name_or_path: str,
+    calendar_name: str,
     args: argparse.Namespace,
 ) -> None:
     if not (
         event_href := client.create_event_from_params(
-            get_calendar_path(client, calendar_name_or_path),
+            calendar_name,
             args.summary,
             args.start,
             args.end,
@@ -1077,11 +1050,11 @@ def _execute_cal_event_create(
 
 def _execute_cal_event_update(
     client: NextcloudCalendarClient,
-    calendar_name_or_path: str,
+    calendar_name: str,
     args: argparse.Namespace,
 ) -> None:
     if not client.update_event_from_params(
-        get_calendar_path(client, calendar_name_or_path),
+        calendar_name,
         args.event,
         args.summary,
         args.start,
@@ -1095,11 +1068,9 @@ def _execute_cal_event_update(
 
 
 def _execute_cal_event_delete(
-    client: NextcloudCalendarClient, calendar_name_or_path: str, event_href: str
+    client: NextcloudCalendarClient, calendar_name: str, event_href: str
 ) -> None:
-    if not client.delete_event(
-        get_calendar_path(client, calendar_name_or_path), event_href
-    ):
+    if not client.delete_event(calendar_name, event_href):
         print("Event deletion failed")
         sys.exit(1)
     print(f"Event deleted: {event_href}")

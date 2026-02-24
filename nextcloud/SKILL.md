@@ -2,185 +2,147 @@
 name: nextcloud
 description: Work with Nextcloud through WebDAV, CalDAV, and CardDAV protocols
 version: 1.0.0
-author: 
+author: Oleg Yurchik <oleg@yurchik.space>
 permissions: Requires network access to connect to Nextcloud server and file system access for local file operations
 ---
 
 # Nextcloud CLI Client Skill
 
 ## Overview
-This skill provides instructions for working with the Nextcloud CLI Client (`nextcloud/skill.py`) - a Python script for interacting with Nextcloud servers via WebDAV, CalDAV, and CardDAV APIs.
 
-## File Location
-- Main script: `nextcloud/skill.py`
+This skill provides automation capabilities for managing files, calendars, and contacts on a Nextcloud server through the command line. It's designed to handle user requests that involve Nextcloud operations.
 
-## Core Functionality
+## When to use this skill
 
-### 1. File Management (WebDAV)
-- `file-list` - List files and directories
-- `file-upload` - Upload files to server
-- `file-download` - Download files from server
-- `file-delete` - Delete files or directories
-- `file-mkdir` - Create directories
+Use this skill when the user asks for:
 
-### 2. Calendar Management (CalDAV)
-- `cal-list` - List all calendars
-- `cal-create` - Create new calendar
-- `cal-events` - List events in a date range
-- `cal-event-get` - Get event content
-- `cal-event-create` - Create event from parameters
-- `cal-event-update` - Update existing event
-- `cal-event-delete` - Delete event
+| User Request | Command to use |
+|--------------|----------------|
+| "List files in folder X" | `python nextcloud/skill.py file-list /path/to/dir` |
+| "Upload file X to server" | `python nextcloud/skill.py file-upload local.txt /remote.txt` |
+| "Download file X from server" | `python nextcloud/skill.py file-download /remote.txt local.txt` |
+| "Delete file X from server" | `python nextcloud/skill.py file-delete /path/to/file` |
+| "Create folder X" | `python nextcloud/skill.py file-mkdir /path/to/dir` |
+| "Show my calendars" | `python nextcloud/skill.py cal-list` |
+| "Create calendar X" | `python nextcloud/skill.py cal-create mycalendar` |
+| "Show events in calendar X" | `python nextcloud/skill.py cal-events mycalendar 2024-01-01 2024-12-31` |
+| "Create event in calendar" | `python nextcloud/skill.py cal-event-create ...` |
+| "Show my contacts" | `python nextcloud/skill.py card-list` |
+| "Find contact X" | `python nextcloud/skill.py card-search query` |
+| "Create contact" | `python nextcloud/skill.py card-create --first-name X --last-name Y` |
 
-### 3. Contacts Management (CardDAV)
-- `card-list` - List all contacts
-- `card-search` - Search contacts by query
-- `card-get` - Get contact card content
-- `card-create` - Create contact from parameters
-- `card-update` - Update existing contact
-- `card-delete` - Delete contact
+## Quick Start
+
+To see all available commands and options, run:
+
+```bash
+python nextcloud/skill.py --help
+```
+
+For help on a specific command:
+
+```bash
+python nextcloud/skill.py file-list --help
+python nextcloud/skill.py file-upload --help
+python nextcloud/skill.py cal-list --help
+python nextcloud/skill.py card-list --help
+```
 
 ## Authentication
 
-### Command Line Arguments
+The skill supports two ways to pass credentials:
+
+### Via command-line arguments
 ```bash
---url <URL>       # Nextcloud server URL
+--url <URL>       # Nextcloud server URL (e.g., https://nextcloud.example.com)
 --user <USERNAME> # Username
 --pass <PASSWORD> # Password
 --timeout <SEC>   # Request timeout (default: 30)
 --verbose, -v     # Enable verbose output
 ```
 
-### Environment Variables
+### Via environment variables
 ```bash
 NEXTCLOUD_URL      # Nextcloud server URL
 NEXTCLOUD_USER     # Username
 NEXTCLOUD_PASSWORD # Password
 ```
 
-**Priority**: CLI arguments > Environment variables
+**Priority**: command-line arguments override environment variables.
 
-## Usage Examples
+## Core Commands
 
-### List Files
+### File Management (WebDAV)
 ```bash
-python skill.py --url https://nextcloud.example.com --user admin --pass password file-list
-python skill.py --url https://nextcloud.example.com --user admin --pass password file-list /path/to/dir
-python skill.py --url https://nextcloud.example.com --user admin --pass password file-list --depth infinity
+python nextcloud/skill.py file-list [OPTIONS] [PATH]
+python nextcloud/skill.py file-upload [OPTIONS] LOCAL_PATH REMOTE_PATH
+python nextcloud/skill.py file-download [OPTIONS] REMOTE_PATH LOCAL_PATH
+python nextcloud/skill.py file-delete [OPTIONS] PATH
+python nextcloud/skill.py file-mkdir [OPTIONS] PATH
 ```
 
-### Upload/Download Files
+### Calendar Management (CalDAV)
 ```bash
-python skill.py --url https://nextcloud.example.com --user admin --pass password file-upload local.txt /remote.txt
-python skill.py --url https://nextcloud.example.com --user admin --pass password file-download /remote.txt local.txt
+python nextcloud/skill.py cal-list [OPTIONS]
+python nextcloud/skill.py cal-create [OPTIONS] NAME
+python nextcloud/skill.py cal-events [OPTIONS] CALENDAR START_DATE [END_DATE]
+python nextcloud/skill.py cal-event-get [OPTIONS] CALENDAR EVENT_HREF
+python nextcloud/skill.py cal-event-create [OPTIONS] CALENDAR SUMMARY DTSTART DTEND
+python nextcloud/skill.py cal-event-update [OPTIONS] CALENDAR EVENT_HREF
+python nextcloud/skill.py cal-event-delete [OPTIONS] CALENDAR EVENT_HREF
 ```
 
-### Calendar Operations
+### Contacts Management (CardDAV)
 ```bash
-# List calendars
-python skill.py --url https://nextcloud.example.com --user admin --pass password cal-list
-
-# Create calendar
-python skill.py --url https://nextcloud.example.com --user admin --pass password cal-create mycalendar
-
-# List events in date range
-python skill.py --url https://nextcloud.example.com --user admin --pass password cal-events mycalendar 2024-01-01 2024-12-31
-
-# Create event
-python skill.py --url https://nextcloud.example.com --user admin --pass password cal-event-create mycalendar "Meeting Title" 2024-06-01T10:00:00 2024-06-01T11:00:00 --description "Team meeting" --location "Room 101"
+python nextcloud/skill.py card-list [OPTIONS]
+python nextcloud/skill.py card-search [OPTIONS] QUERY
+python nextcloud/skill.py card-get [OPTIONS] CARD_NAME_OR_PATH
+python nextcloud/skill.py card-create [OPTIONS]
+python nextcloud/skill.py card-update [OPTIONS] CARD_NAME_OR_PATH
+python nextcloud/skill.py card-delete [OPTIONS] CARD_NAME_OR_PATH
 ```
 
-### Contact Operations
+## Examples
+
+### List files in a directory
 ```bash
-# List contacts
-python skill.py --url https://nextcloud.example.com --user admin --pass password card-list
-
-# Search contacts
-python skill.py --url https://nextcloud.example.com --user admin --pass password card-search query
-
-# Create contact
-python skill.py --url https://nextcloud.example.com --user admin --pass password card-create --first-name John --last-name Doe --email john@example.com --phone +1234567890
-
-# Update contact
-python skill.py --url https://nextcloud.example.com --user admin --pass password card-update contact.vcf --first-name Jane --last-name Doe
+python nextcloud/skill.py file-list /path/to/dir
+python nextcloud/skill.py file-list --depth infinity
 ```
 
-## API Endpoints Used
-
-### Files (WebDAV)
-- `PROPFIND /remote.php/dav/files/{user}/` - List files
-- `PUT /remote.php/dav/files/{user}/` - Upload file
-- `GET /remote.php/dav/files/{user}/` - Download file
-- `DELETE /remote.php/dav/files/{user}/` - Delete file
-- `MKCOL /remote.php/dav/files/{user}/` - Create directory
-
-### Calendars (CalDAV)
-- `PROPFIND /remote.php/dav/calendars/{user}/` - List calendars
-- `REPORT /remote.php/dav/calendars/{user}/{calendar}/` - Query events
-- `MKCOL /remote.php/dav/calendars/{user}/{name}/` - Create calendar
-- `PUT /remote.php/dav/calendars/{user}/{calendar}/{event}.ics` - Create/update event
-- `GET /remote.php/dav/calendars/{user}/{calendar}/{event}.ics` - Get event
-- `DELETE /remote.php/dav/calendars/{user}/{calendar}/{event}.ics` - Delete event
-
-### Contacts (CardDAV)
-- `PROPFIND /remote.php/dav/addressbooks/users/{user}/contacts/` - List address books
-- `GET /remote.php/dav/addressbooks/users/{user}/contacts/{card}.vcf` - Get contact
-- `PUT /remote.php/dav/addressbooks/users/{user}/contacts/{card}.vcf` - Create/update contact
-- `DELETE /remote.php/dav/addressbooks/users/{user}/contacts/{card}.vcf` - Delete contact
-
-## Data Formats
-
-### Event (iCalendar/VCALENDAR)
-```
-BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Nextcloud CLI//EN
-BEGIN:VEVENT
-UID:{uuid}@nextcloud
-DTSTAMP:{timestamp}
-SUMMARY:{title}
-DTSTART:{datetime}
-DTEND:{datetime}
-DESCRIPTION:{description}
-LOCATION:{location}
-END:VEVENT
-END:VCALENDAR
+### Upload a file
+```bash
+python nextcloud/skill.py file-upload local.txt /remote.txt
 ```
 
-### Contact (vCard/VCARD)
-```
-BEGIN:VCARD
-VERSION:3.0
-UID:{uuid}@nextcloud
-PRODID:-//Nextcloud CLI//EN
-FN:{full_name}
-N:{last_name};{first_name};;;
-NICKNAME:{nickname}
-EMAIL:{email}
-TEL:{phone}
-ORG:{organization}
-NOTE:{note}
-END:VCARD
+### List calendars
+```bash
+python nextcloud/skill.py cal-list
 ```
 
-## Error Handling
+### Create an event
+```bash
+python nextcloud/skill.py cal-event-create mycalendar "Meeting Title" 2024-06-01T10:00:00+03:00 2024-06-01T11:00:00+03:00 --description "Team meeting" --location "Room 101"
+```
 
-The script handles the following errors:
-- `HTTPRequestError` - HTTP errors (4xx, 5xx responses)
-- `HTTPRequestStatusException` - Incorrect response status
-- `NextcloudAuthError` - Authentication errors
-- `NextcloudError` - General Nextcloud errors
-- `FileNotFoundError` - Local file not found
-- `ValueError` - Input validation errors
+### List contacts
+```bash
+python nextcloud/skill.py card-list
+```
 
-All errors result in exit code 1 with appropriate error messages logged to stderr.
+### Search contacts
+```bash
+python nextcloud/skill.py card-search query
+```
 
 ## Dependencies
-- Python 3.x (standard library only - no external packages required)
-- Uses: `argparse`, `base64`, `datetime`, `logging`, `os`, `re`, `sys`, `uuid`, `urllib`, `xml.etree.ElementTree`
+
+- Python 3.x (standard library only)
+- Modules: `argparse`, `base64`, `datetime`, `logging`, `os`, `re`, `sys`, `uuid`, `urllib`, `xml.etree.ElementTree`
 
 ## Notes
-- Calendar and contact paths can be specified as names (auto-resolved) or full paths
+
+- Calendar and contact names can be specified (auto-resolved) or full paths
 - Events and contacts are identified by their href/UID
 - Contact search performs client-side filtering (Nextcloud doesn't support CardDAV REPORT for search)
-- All datetime parameters support both date-only (YYYY-MM-DD) and datetime (YYYY-MM-DDTHH:MM:SS) formats
+- **Datetime format**: All datetime parameters must include timezone information in ISO 8601 format (e.g., `2024-06-01T10:00:00+03:00` or `2024-06-01T10:00:00Z`). Date-only format (YYYY-MM-DD) is supported for all-day events.

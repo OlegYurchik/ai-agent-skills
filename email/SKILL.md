@@ -2,194 +2,115 @@
 name: email
 description: Work with email through IMAP and SMTP protocols
 version: 1.0.0
-author: 
+author: Oleg Yurchik <oleg@yurchik.space>
 permissions: Requires network access to connect to IMAP/SMTP servers for sending and receiving emails
 ---
 
 # Email CLI Client Skill
 
 ## Overview
-This skill provides instructions for working with the Email CLI Client (`email/skill.py`) - a Python script for interacting with email servers via IMAP and SMTP protocols.
 
-## File Location
-- Main script: `email/skill.py`
+This skill provides email automation capabilities through the command line. It's designed to handle user requests that involve email operations.
 
-## Core Functionality
+## When to use this skill
 
-### 1. Receiving Emails (IMAP)
-- `get` - Get emails from mailbox
-- `search` - Search emails by keyword
+Use this skill when the user asks for:
 
-### 2. Deleting Emails (IMAP)
-- `delete` - Delete email from mailbox
+| User Request | Command to use |
+|--------------|----------------|
+| "Find email from X" | `python email/skill.py search --term "X"` |
+| "Show latest emails from inbox" | `python email/skill.py get` |
+| "Check incoming emails" | `python email/skill.py get --search "UNSEEN"` |
+| "Delete spam from inbox" | `python email/skill.py delete --id <ID>` |
+| "Send email to X@example.com" | `python email/skill.py send --to X@example.com` |
+| "Send report via email" | `python email/skill.py send --to admin@example.com --subject "Report"` |
+| "Find emails with attachments" | `python email/skill.py search --term "has:attachment"` |
+| "Check emails from Sent folder" | `python email/skill.py get --folder "Sent"` |
 
-### 3. Sending Emails (SMTP)
-- `send` - Send email to recipient
+## Quick Start
+
+To see all available commands and options, run:
+
+```bash
+python email/skill.py --help
+```
+
+For help on a specific command:
+
+```bash
+python email/skill.py get --help
+python email/skill.py send --help
+python email/skill.py search --help
+python email/skill.py delete --help
+```
 
 ## Authentication
 
-### Command Line Arguments
+The skill supports two ways to pass credentials:
+
+### Via command-line arguments
 ```bash
-# IMAP/SMTP Server
---host <HOST>       # IMAP/SMTP server (e.g., imap.gmail.com, smtp.gmail.com)
---port <PORT>       # Server port (default: 993 for IMAP SSL, 465 for SMTP SSL)
---user <USERNAME>   # Email username
---password <PASS>   # Email password
-
-# IMAP-specific
---folder <FOLDER>   # Mailbox folder (default: INBOX)
---search <CRITERIA> # IMAP search criteria (default: ALL)
---limit <N>         # Maximum number of emails (default: 10)
---no-ssl            # Disable SSL
-
-# SMTP-specific
---to <ADDRESS>      # Recipient email address
---subject <SUBJECT> # Email subject
---body <BODY>       # Email body
---from <ADDRESS>    # Sender address (default: --user)
---no-tls            # Disable STARTTLS
---html              # Send as HTML
+--host <HOST>       # IMAP/SMTP server (e.g., imap.gmail.com)
+--port <PORT>       # Server port
+--user <USERNAME>   # Username
+--password <PASS>   # Password
 ```
 
-### Environment Variables
+### Via environment variables
 ```bash
-# IMAP
-IMAP_HOST       # IMAP server
-IMAP_PORT       # IMAP port (default: 993)
-IMAP_USER       # Email username
-IMAP_PASSWORD   # Email password
-IMAP_USE_SSL    # Use SSL (default: True)
-
-# SMTP
-SMTP_HOST       # SMTP server
-SMTP_PORT       # SMTP port (default: 465)
-SMTP_USER       # Email username
-SMTP_PASSWORD   # Email password
-SMTP_USE_SSL    # Use SSL (default: True)
-SMTP_USE_TLS    # Use STARTTLS (default: True)
+IMAP_HOST, IMAP_PORT, IMAP_USER, IMAP_PASSWORD
+SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD
 ```
 
-**Priority**: CLI arguments > Environment variables
+**Priority**: command-line arguments override environment variables.
 
-## Usage Examples
+## Core Commands
 
-### Get Emails from Mailbox
+### Get Emails
 ```bash
-# Get last 5 emails from INBOX
-python email/skill.py get --host imap.gmail.com --user example@gmail.com --password pass
-
-# Get emails with specific search criteria
-python email/skill.py get --host imap.gmail.com --user example@gmail.com --password pass --search "UNSEEN"
-
-# Get emails from specific folder
-python email/skill.py get --host imap.gmail.com --user example@gmail.com --password pass --folder "Sent"
+python email/skill.py get [OPTIONS]
 ```
+Retrieves emails from the mailbox. Supports filtering by folder, IMAP criteria, and message limit.
 
 ### Search Emails
 ```bash
-# Search emails by keyword
-python email/skill.py search --host imap.gmail.com --user example@gmail.com --password pass --term "important"
-
-# Search in specific folder
-python email/skill.py search --host imap.gmail.com --user example@gmail.com --password pass --term "meeting" --folder "INBOX"
+python email/skill.py search [OPTIONS] --term <QUERY>
 ```
+Searches emails by keyword in headers and message body.
 
-### Delete Email
+### Delete Emails
 ```bash
-# Delete email by message ID
-python email/skill.py delete --host imap.gmail.com --user example@gmail.com --password pass --id 123
-
-# Delete from specific folder
-python email/skill.py delete --host imap.gmail.com --user example@gmail.com --password pass --id 456 --folder "Trash"
+python email/skill.py delete [OPTIONS] --id <MESSAGE_ID>
 ```
+Deletes an email by its identifier. Messages are marked as deleted and removed during expunge.
 
-### Send Email
+### Send Emails
 ```bash
-# Send plain text email
-python email/skill.py send --host smtp.gmail.com --user example@gmail.com --password pass --to dest@example.com --subject "Subject" --body "Text"
+python email/skill.py send [OPTIONS] --to <ADDRESS> --subject <SUBJECT> --body <BODY>
+```
+Sends email via SMTP. Supports HTML format.
 
-# Send HTML email
-python email/skill.py send --host smtp.gmail.com --user example@gmail.com --password pass --to dest@example.com --subject "Subject" --body "<h1>HTML</h1>" --html
+## Examples
 
-# Send from different sender address
-python email/skill.py send --host smtp.gmail.com --user example@gmail.com --password pass --to dest@example.com --subject "Subject" --body "Text" --from admin@example.com
+### Get last 5 unread emails
+```bash
+python email/skill.py get --search "UNSEEN" --limit 5
 ```
 
-## IMAP Commands
-
-### get
-Retrieve emails from mailbox.
-
-**Arguments:**
-- `--host` - IMAP server
-- `--port` - IMAP port (default: 993)
-- `--user` - Email username
-- `--password` - Email password
-- `--folder` - Folder to read (default: INBOX)
-- `--search` - IMAP search criteria (default: ALL)
-- `--limit` - Maximum number of emails (default: 10)
-- `--no-ssl` - Disable SSL
-
-### search
-Search emails by text query.
-
-**Arguments:**
-- `--host` - IMAP server
-- `--port` - IMAP port (default: 993)
-- `--user` - Email username
-- `--password` - Email password
-- `--term` - Search query (required)
-- `--folder` - Folder to search in (default: INBOX)
-- `--no-ssl` - Disable SSL
-
-### delete
-Delete email from mailbox.
-
-**Arguments:**
-- `--host` - IMAP server
-- `--port` - IMAP port (default: 993)
-- `--user` - Email username
-- `--password` - Email password
-- `--id` - Message ID to delete (required)
-- `--folder` - Folder containing the message (default: INBOX)
-- `--no-ssl` - Disable SSL
-
-## SMTP Commands
-
-### send
-Send email to recipient.
-
-**Arguments:**
-- `--host` - SMTP server
-- `--port` - SMTP port (default: 465)
-- `--user` - Email username
-- `--password` - Email password
-- `--to` - Recipient address (required)
-- `--subject` - Email subject (required)
-- `--body` - Email body (required)
-- `--from` - Sender address (default: --user)
-- `--no-ssl` - Disable SSL
-- `--no-tls` - Disable STARTTLS
-- `--html` - Send as HTML
-
-## Output Format
-
-### Email Display
-```
-============================================================
-Email #123 (#1)
-============================================================
-From: John Doe <john@example.com>
-To: Jane Doe <jane@example.com>
-Date: Mon, 1 Jan 2024 10:00:00 +0000
-Subject: Test Email
-
-Body:
-----------------------------------------
-This is the email body.
+### Send error notification
+```bash
+python email/skill.py send \
+  --to admin@example.com \
+  --subject "Script Error" \
+  --body "An error occurred during task execution"
 ```
 
-## IMAP Server Examples
+### Search emails with attachments
+```bash
+python email/skill.py search --term "has:attachment"
+```
+
+## Supported IMAP Servers
 
 | Provider | IMAP Host | Port | SSL |
 |----------|-----------|------|-----|
@@ -198,7 +119,7 @@ This is the email body.
 | Yahoo | imap.mail.yahoo.com | 993 | Yes |
 | Yandex | imap.yandex.com | 993 | Yes |
 
-## SMTP Server Examples
+## Supported SMTP Servers
 
 | Provider | SMTP Host | Port | SSL/TLS |
 |----------|-----------|------|---------|
@@ -207,38 +128,15 @@ This is the email body.
 | Yahoo | smtp.mail.yahoo.com | 465 | SSL |
 | Yandex | smtp.yandex.com | 465 | SSL |
 
-## Data Fields
-
-### Email Object
-```python
-{
-    "id": "123",              # Message ID
-    "subject": "Subject",     # Decoded subject
-    "from": "Name <email>",   # Decoded From header
-    "from_email": "email",    # Extracted email address
-    "to": "Name <email>",     # Decoded To header
-    "date": "Mon, 1 Jan 2024", # Date header
-    "body": "Email body",     # Decoded body text
-    "raw": b"..."             # Raw email bytes
-}
-```
-
-## Error Handling
-
-The script handles the following errors:
-- `ValueError` - Missing required parameters
-- `ConnectionError` - IMAP/SMTP connection errors
-- `Exception` - IMAP/SMTP protocol errors
-
-All errors result in exit code 1 with appropriate error messages logged to stdout/stderr.
-
 ## Dependencies
-- Python 3.x (standard library only - no external packages required)
-- Uses: `argparse`, `email`, `imaplib`, `os`, `smtplib`, `sys`
+
+- Python 3.x (standard library only)
+- Modules: `argparse`, `email`, `imaplib`, `os`, `smtplib`, `sys`
 
 ## Notes
-- Email bodies are decoded using charset from headers or UTF-8 as fallback
+
+- Email bodies are decoded from headers or UTF-8 as fallback
 - MIME multipart emails extract plain text parts
 - IMAP search uses `TEXT` criterion for keyword search
-- Deleted emails are marked with `\Deleted` flag and expunged
+- Deleted emails are marked with `\Deleted` flag and removed during expunge
 - SMTP sends emails with proper MIME headers (plain or HTML)
